@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/windowIcon">
+        <file alias="windowIcon">rfid.svg</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>img/robomotion.png</file>
+        <file>img/favicon.ico</file>
+    </qresource>
+</RCC>

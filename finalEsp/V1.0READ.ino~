@@ -1,0 +1,298 @@
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_PN532.h>
+//SPI
+#define PN532_SCK  (14)
+#define PN532_MOSI (13)
+#define PN532_SS   (4)
+#define PN532_MISO (12)
+#define LF          0x0A 
+
+bool marker = false;
+unsigned long actualTime = 0;
+unsigned long lastTime = 0;
+unsigned long interval = 3000;
+
+Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
+const uint8_t ledPin = LED_BUILTIN;
+int flag = 0;
+char newuid[13] = {};
+
+void setup(void) {
+  Serial.begin(115200);
+  while (!Serial) delay(10); // producent delay
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+
+  nfc.begin();
+  
+  
+  uint32_t versiondata;
+  do{
+     versiondata = nfc.getFirmwareVersion();
+  
+  }while(versiondata);
+  
+  
+//  if (! versiondata) {
+//    Serial.print("Didn't find PN53x board");
+//    while (1); // halt
+//  }
+  // Got ok data, print it out!
+  Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
+  Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
+  Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
+  
+  // configure board to read RFID tags
+  nfc.SAMConfig();
+  
+  Serial.println("Waiting for an ISO14443A Card ...");
+  lastTime = millis();
+}
+
+void loop(void) {
+
+  if (marker == true && lastTime+interval<millis()){ // last time = start programu np 1s  pozniej interval == 3s
+    nfc_read();
+    lastTime=millis();
+  }
+
+}
+
+
+
+void nfc_read(){
+  uint8_t success;
+  uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
+  uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
+  Serial.println("Proszę przyłożyć kartę :) ");
+  // if the uid is 4 bytes (Mifare Classic) or 7 bytes (Mifare Ultralight)
+  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+  
+  Serial.println("GEH");
+  Serial.println(success);
+  if (success) {
+    // Display some basic information about the card
+    Serial.println("Found an ISO14443A card");
+    Serial.print("  UID Length: ");Serial.print(uidLength, DEC);Serial.println(" bytes");
+    Serial.print("  UID Value: ");
+    nfc.PrintHex(uid, uidLength);
+    Serial.println("");
+    
+    if (uidLength == 4)
+    {
+      // We probably have a Mifare Classic card ... 
+      Serial.println("Seems to be a Mifare Classic card (4 byte UID)");   
+      // Now we need to try to authenticate it for read/write access
+      // Try with the factory default KeyA: 0xFF 0xFF 0xFF 0xFF 0xFF 0xFF
+      Serial.println("Trying to authenticate block 4 with default KEYA value");
+      uint8_t keya[6] = { 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA6 };
+    
+       // Proba uzyskania dostepu do Bloku #4 pamieci
+      
+      success = nfc.mifareclassic_AuthenticateBlock(uid, uidLength, 4, 0, keya);
+    
+      if (success)
+      {
+        Serial.println("Sector 1 (Blocks 4..7) has been authenticated");
+        uint8_t data[13];
+        // Try to read the contents of block 4
+        success = nfc.mifareclassic_ReadDataBlock(4, data);
+    
+        if (success)
+        {
+          // Data seems to have been read ... spit it out
+          Serial.println("Reading Block 4:");
+          Serial.print("UID:");
+          nfc.PrintHexChar(data, 13);
+          Serial.println("");
+      
+          // Wait a bit before reading the card again
+          //delay(1000);
+        }//
+        else
+        {
+          Serial.println("Ooops ... unable to read the requested block.  Try another key?");
+        }
+      }
+      else
+      {
+        Serial.println("Ooops ... authentication failed: Try another key?");
+      }
+    }
+    
+    if (uidLength == 7)
+    {
+      // Mifare Ultralight card ...
+      Serial.println("Seems to be a Mifare Ultralight tag (7 byte UID)");
+    
+      // Try to read the first general-purpose user page (#4)
+      Serial.println("Reading page 4");
+      uint8_t data[32];
+      success = nfc.mifareultralight_ReadPage (4, data);
+      if (success)
+      {
+        // Data seems to have been read ... spit it out
+        nfc.PrintHexChar(data, 4);
+        Serial.println("");
+    
+        // Wait a bit before reading the card again
+        //delay(1000);
+      }
+      else
+      {
+        Serial.println("Ooops ... unable to read the requested page!?");
+      }
+    }
+  }
+  
+}
+
+void nfcWrite(char newuid[]){
+  uint8_t success;
+  uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // UID
+  uint8_t uidLength;                        //Dlugosc UID (4 albo 7 w zaleznosci od typu karty) 
+  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+  if (success)
+  {
+    Serial.println();
+    Serial.println("Znaleziono znacznik ISO14443A");
+    
+    // wyswietlenie dlugosci unikatowego identyfikatora
+    Serial.print("  Dlugosc: ");
+    Serial.print(uidLength, DEC);
+    Serial.println("B");
+    
+    // wyswietlenie unikatowego identyfikatora
+    Serial.print("  UID: ");
+    nfc.PrintHex(uid, uidLength);
+ 
+    // wyswietlenie typu znacznika
+    Serial.print("  TYP: ");
+    if (uidLength == 4)
+    {
+      Serial.println("Mifare Classic");
+      Serial.println("");
+ 
+      Serial.println("Proba autoryzacji za pomoca klucza A");
+      
+      // Klucz
+      // Defaultowy klucz A uint8_t keya[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+      uint8_t keya[6] = {0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA6 };
+ 
+      success = nfc.mifareclassic_AuthenticateBlock(uid, uidLength, 4, 0, keya);
+ 
+      if (success)
+      {
+        Serial.println("Uzyskano dostep do bloku #4 (oraz sektora 1)");
+        
+        // Zapisujemy dane do bloku 4
+        success = nfc.mifareclassic_WriteDataBlock (4, (uint8_t*)newuid);
+        
+        if (success)
+        {
+          Serial.println("Zapisano dane do bloku #4");          
+        } else
+        {
+          Serial.println("Blad podczas zapisu danych bloku #4");          
+        }
+       
+        // // Nowy Sector Trailer
+        // uint8_t sectortrailer[16] = {
+        //   0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA6,  // Klucz A
+        //   0xFF, 0x07, 0x80, 0x69,              // Bity dostepu
+        //   0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB6   // Klucz B
+        // };        
+ 
+        // // Zapisujemy Sector Trailer do bloku 7
+        // success = nfc.mifareclassic_WriteDataBlock (7, sectortrailer);
+ 
+        // if (success)
+        // {
+        //   Serial.println("Zapisano nowe klucze i bity dostepu sektora 1 (#4 - #7)");          
+        // } else
+        // {
+        //   Serial.println("Blad podczas zapisu nowych kluczy i bitow dostepu do sektora 1 (#4 - #7)");          
+        // }
+        
+      } else
+      {
+        Serial.println("Nie mozna uzyskac dostepu do bloku #4 (oraz sektora 1)");  
+      }
+    }
+  }
+ 
+  delay(2000);
+}
+
+
+void fill_uid(char newuid[]){
+  bool to_continue = true;
+   
+  int rlen;
+  while(to_continue){
+    if (Serial.available() > 0) {
+      rlen = Serial.readBytesUntil('x',newuid,13);
+      if(rlen < 13){
+        Serial.println("Wpisane UID posiada mniej niz 13 znaki");
+        break;
+      }
+      else if(rlen == 13){
+        to_continue = false;
+        Serial.println("OK");
+        break;
+      }
+      else{
+        Serial.println("Wpisane UID posiada więcej niz 32 znaki");
+        break;
+      }
+  
+
+      }
+  } 
+  Serial.println("otrzymalem");
+  for(int i=0;i<=13;i++){
+    Serial.println(newuid[i]);
+  }    
+
+}
+
+void checknewUID(char newuid[]){
+  Serial.println("Sprawdzam nowy id");
+  for(int i=0;i<13;i++){
+    Serial.println(newuid[i]);
+  }
+}
+void serialEvent() {
+  while (Serial.available()) {
+    char state = (char)Serial.read();
+    switch(state){
+      case '0':
+        digitalWrite(ledPin, 0);
+        marker = false;
+        break;
+      case '1':
+        digitalWrite(ledPin, 1);
+        //marker = false;
+        break;
+      case '2':
+        nfc_read();
+        marker = true;
+        //Serial.print("Wywoalnie markera  ");
+        // Serial.println(marker);
+        break;
+      case '3':
+        marker = false;
+        break;
+      case '4':
+        Serial.println("jestem w case 4");
+        fill_uid(newuid);
+        //checknewUID(newuid);
+        nfcWrite(newuid);
+        marker = false;
+        break;
+        Serial.println("wyszedlem z case 4");
+    }       
+    Serial.println("Potwierdzam odbior. Status = " + String(state));
+  }
+}
