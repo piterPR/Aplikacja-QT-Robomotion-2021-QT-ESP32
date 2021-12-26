@@ -257,13 +257,6 @@ void MainWindow::on_pushButtonNEW_clicked()
 
 
 
-// 3 i 5 staly
-
-// odczytany 8d0dfe99 2139 9 uidCut;
-// Pawel michalowski 8d0dfe99-2139-11ec-9083-b8ca3a5bc7d0
-//-11ec-b8ca3a5bc7d0
-//8d0dfe99 2139 9083
-//8d0dfe9921399083
 void MainWindow::saveTag(QString uid,int flag)
 {
 
