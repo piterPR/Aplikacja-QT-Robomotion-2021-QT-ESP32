@@ -185,16 +185,16 @@ void nfcWrite(char newuid[]){
     Serial.println();
     Serial.println("Znaleziono znacznik ISO14443A");
     
-    // wyswietlenie dlugosci unikatowego identyfikatora
+    // UID TAG
     Serial.print("  Dlugosc: ");
     Serial.print(uidLength, DEC);
     Serial.println("B");
     
-    // wyswietlenie unikatowego identyfikatora
+    // UID TAG
     Serial.print("  UID: ");
     nfc.PrintHex(uid, uidLength);
  
-    // wyswietlenie typu znacznika
+    // TYPE
     Serial.print("  TYP: ");
     if (uidLength == 4)
     {
@@ -202,19 +202,16 @@ void nfcWrite(char newuid[]){
       Serial.println("");
  
       Serial.println("Proba autoryzacji za pomoca klucza A");
-      
-      // Klucz
-      // Defaultowy klucz A 
+   
+      // Default keya 0XFF
       uint8_t keya[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-     // uint8_t keya[6] = {0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA6 };
+      // uint8_t keya[6] = {0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA6 };
  
       success = nfc.mifareclassic_AuthenticateBlock(uid, uidLength, 4, 0, keya);
  
       if (success)
       {
         Serial.println("Uzyskano dostep do bloku #4 (oraz sektora 1)");
-        
-        // Zapisujemy dane do bloku 4
         success = nfc.mifareclassic_WriteDataBlock (4, (uint8_t*)newuid);
         
         if (success)
@@ -225,14 +222,14 @@ void nfcWrite(char newuid[]){
           Serial.println("Blad podczas zapisu danych bloku #4");          
         }
        
-        // Nowy Sector Trailer
+        // New Sector Trailer
         uint8_t sectortrailer[16] = {
           0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA6,  // Klucz A
           0xFF, 0x07, 0x80, 0x69,              // Bity dostepu
           0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB6   // Klucz B
         };        
  
-        // Zapisujemy Sector Trailer do bloku 7
+        // Save Sector Trailer to block 7
         success = nfc.mifareclassic_WriteDataBlock (7, sectortrailer);
  
         if (success)
@@ -258,12 +255,9 @@ void readGate(){
   uint8_t timerState = 0;
   bool toContinue = true;
   uint16_t sensorState = 0;
-  //Serial.println("Jestem przed while");
   while(toContinue){
 
-    sensorState = analogRead(SENSORPIN_START);  
-    //Serial.println("Jestem w while");
-
+    sensorState = analogRead(SENSORPIN_START); 
     switch (timerState){
       
       case 0: // Waiting for starting pass the gate
@@ -285,8 +279,7 @@ void readGate(){
           timerState = 1;
         }
         break;
-      case 2: // Send info 
-        //Serial.println("Jestem w case 2 while");    
+      case 2: // Send info   
         Serial.print("Czas przejazdu: ");
         Serial.println(stopTime);
         timerState = 0;
@@ -304,12 +297,9 @@ void read2Gate(){
   uint8_t timerState = 0;
   bool toContinue = true;
   uint16_t sensorState = 0;
-  Serial.println("Jestem przed while");
   while(toContinue){
 
     sensorState = analogRead(SENSORPIN_START);  
-    //Serial.println("Jestem w while");
-
     switch (timerState){
       
       case 0: // Waiting for starting pass the gate
@@ -332,8 +322,7 @@ void read2Gate(){
           timerState = 1;
         }
         break;
-      case 2: // Send info 
-        //Serial.println("Jestem w case 2 while");    
+      case 2: // Send info    
         Serial.print("Czas przejazdu: ");
         Serial.println(stopTime);
         timerState = 0;
@@ -364,14 +353,14 @@ void fillUid(char newuid[]){
         break;
       }
       else{
-        Serial.println("Wpisane UID posiada wi�cej niz 32 znaki");
+        Serial.println("Wpisane UID posiada wiecej niz 32 znaki");
         break;
       }
   
 
       }
   } 
-  Serial.println("otrzymalem");
+  Serial.println("Received: ");
   for(int i=0;i<=16;i++){
     Serial.println(newuid[i]);
   }    
@@ -379,7 +368,7 @@ void fillUid(char newuid[]){
 }
 
 void checknewUID(char newuid[]){
-  Serial.println("Sprawdzam nowy id");
+  Serial.println("Check new  UID");
   for(int i=0;i<16;i++){
     Serial.println(newuid[i]);
   }
