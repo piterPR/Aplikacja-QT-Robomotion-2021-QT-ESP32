@@ -64,7 +64,6 @@ QTextStream& qStdOut()
 
 void MainWindow::addToLogs(QString message)
 {
-    //QString currentDateTime = QDateTime::currentDateTime().toString("yyyy.MM.dd hh:mm:ss");
     ui->textEditLogs->append(message);
     ui->textEditLogs_2->append(message);
     ui->textEditLogs_3->append(message);
@@ -157,9 +156,8 @@ void MainWindow::readFromPort()
             ui->lbl_buton_dual_gate->setText("Nieaktywny");
             ui->pushButtonOneGate->setChecked(false);
             ui->pushButtonDualGate->setChecked(false);
-            //ui->pushButtonOneGate->setText("Nieaktywny");
-
-            //ui->pushButtonDualGate->setText("Nieaktywny");
+            ui->pushButtonOneGate->setText("Nieaktywny");
+            ui->pushButtonDualGate->setText("Nieaktywny");
         }
         else if(line.contains(nfcTimeout, Qt::CaseInsensitive)){
             qDebug() << "NFC Timeout";
@@ -226,11 +224,8 @@ void MainWindow::on_savenfc_clicked()
 {
 
     qDebug("clicked");
-    QString NFC_save_tag = ui->lineEdit->text(); // zapis do strina NFC_save_tag
-
-
+    QString NFC_save_tag = ui->lineEdit->text(); 
     //qStdOut() << NFC_save_tag;
-    //qDebug(NFC_save_tag.toLatin1()); //
     this->sendMessageToDevice(NFC_save_tag);
 
 }
@@ -318,7 +313,7 @@ void MainWindow::on_pushButtonOneGate_clicked()
     }
     else{
         ui->lbl_buton_one_gate->setText("Nieaktywny");
-        //this->sendMessageToDevice("6");
+        this->sendMessageToDevice("6");
     }
 
 }
