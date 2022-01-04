@@ -26,9 +26,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(QApplication::clipboard(), SIGNAL(dataChanged()),
               this, SLOT(clipboardChanged()));
-    //QPixmap pix("C:/Users/user/Desktop/QTROBO/img/robomotion.png");
-    //ui->pix->setPixmap(pix);
-    // .scaled(300,300,Qt::KeepAspectRatio)
+
 
 
 }
@@ -225,7 +223,7 @@ void MainWindow::on_savenfc_clicked()
 
     qDebug("clicked");
     QString NFC_save_tag = ui->lineEdit->text(); 
-    //qStdOut() << NFC_save_tag;
+    qStdOut() << NFC_save_tag;
     this->sendMessageToDevice(NFC_save_tag);
 
 }
@@ -239,7 +237,7 @@ void MainWindow::on_SaveON_clicked()
     }
     else{
         ui->labelsave->setText("Nieaktywny");
-        //this->sendMessageToDevice("6");
+        this->sendMessageToDevice("6");
     }
 }
 
@@ -277,7 +275,7 @@ void MainWindow::saveTag(QString uid,int flag)
     else if(flag == 1){
         qDebug()<<uid;
         qDebug()<<"Cut Time";
-        QString timeCut = uid.mid(15,5);
+        QString timeCut = uid.mid(15,6);
         qDebug()<<timeCut;
         on_copyToClipboard_clicked(timeCut);
     }
@@ -288,10 +286,6 @@ void MainWindow::saveTag(QString uid,int flag)
 
 }
 
-//void MainWindow::saveTime(QString uid)
-//{
-
-//}
 
 
 void MainWindow::on_copyToClipboard_clicked(QString uidd)
